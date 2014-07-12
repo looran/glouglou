@@ -1,0 +1,64 @@
+==================
+Glougloud protocol
+==================
+
+UDP protocol to transport events from glouglou probes to the glougloud server.
+
+libglouglou/client.c - client code, to connect to glougloud server
+libglouglou/packet.c - packet parsing
+libglouglou/server.c - server code
+libglouglou/log.c
+libglouglou/utils.c
+
+
+Protocol definitions
+====================
+
+The glougloud protocol is implemented in libglouglou extensions.
+Definitions are in .h in each libglouglou extensions.
+There is one glougloud module per group of events:
+* internal events (included in default libglouglou)
+* network events (included in default libglouglou)
+* system processus events
+* ...
+
+Probes and glougloud modules do #include of the libglouglou extension header,
+and link against it:
+#include <libglouglou/ext/ggpkt_mod_0_internal.h>
+ld -lggpkt_mod_0_internal
+
+
+Probe connection to glougloud server
+====================================
+
+probe <=> glougloud
+     ---> PACKET_INTERNAL_HELLO
+          * random
+     <--- PACKET_INTERNAL_HELLO_RES
+          * random2
+     ---> PACKET_INTERNAL_AUTH
+          * probe_id
+          * probe_password
+          * random + random2
+     <--- PACKET_INTERNAL_AUTH_RES
+          * auth_status (AUTH_OK, AUTH_REFUSED)
+
+
+Probe ID
+========
+
+Probe ID and probe password are defined by the system administrator when stating a probe, usualy via command line arguments.
+Each probe ID and probe password should be added in the glougloud password list
+directory /var/lib/glougloud/chroot/probe_passwords/ as single file:
+
+# umask 0227
+# echo "my_probe_0_password" > /var/lib/glougloud/chroot/probe_passwords/probe_0
+
+
+API
+===
+
+libglouglou
+ggpkt_mod_0_internal
+
+libglouglou/ext/ggpkt_mod_0_internal.h

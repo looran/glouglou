@@ -1,0 +1,79 @@
+=== Visualisation client ===
+
+* The DGS File Format Specification
+http://graphstream-project.org/doc/Advanced-Concepts/The-DGS-File-Format_1.1/
+* gs netstream
+https://github.com/graphstream/gs-netstream
+https://github.com/graphstream/gs-netstream/wiki/NetStream-Manual
+* gs w3sink
+https://github.com/graphstream/w3sink
+
+Graph database in-memory in JS
+http://entrendipity.github.io/helios.js/
+
+* d3 updates
+http://bl.ocks.org/mbostock/3808218
+* d3 realtime graph
+http://stackoverflow.com/questions/9664642/d3-real-time-streamgraph-graph-data-visualization
+http://stackoverflow.com/questions/12764813/producing-a-live-graph-with-d3
+* d3 path transitions
+http://bost.ocks.org/mike/path/
+* d3 streamgraph
+http://bl.ocks.org/mbostock/4060954
+* d3gl - D3 plugin for WebGL
+https://github.com/jiwonkim/d3gl
+* threejs - Javascript 3d library
+http://threejs.org/
+
+* Gephi
+https://gephi.org/
+wiki.gephi.org/index.php/Main_Page
+* Gephi - graph streaming
+http://wiki.gephi.org/index.php/Graph_Streaming
+https://marketplace.gephi.org/plugin/graph-streaming/
+https://github.com/gephi/gephi-plugins/tree/graph-streaming
+http://wiki.gephi.org/index.php/Specification_-_GSoC_Graph_Streaming_API
+* Graphchi
+https://code.google.com/p/graphchi/
+* Graphstream
+http://graphstream-project.org/
+http://graphstream-project.org/doc/Tutorials/Getting-Started_1.0/
+http://code.google.com/p/graphstream/
+* GSoC: interconnect Gephi Graph Streaming API and GraphStream
+https://gephi.org/tag/graphstream/
+* Cytoscape
+http://www.cytoscape.org/
+
+Gephi: Graph Streaming in action
+https://www.youtube.com/watch?v=7SW_FDiY0sg
+
+=== Processing Server ===
+
+= Websockets
+
+* libwebsock
+https://github.com/payden/libwebsock/
++ evhttp
+https://github.com/libevent/libevent/blob/master/sample/http-server.c
+Ahttps://www.google.com/search?q=c+http+web+server&ie=utf-8&oe=utf-8&aq=t&rls=org.mozilla:en-US:official&client=firefox-a#q=libevent+static+web+server&rls=org.mozilla:en-US%3Aofficial
+http://abhinavsingh.com/blog/2009/12/how-to-build-a-custom-static-file-serving-http-server-using-libevent-in-c/
+
+* (old) libwebsockets (ssl, BUT too complicated AND no default integration with libevent)
+libwebsockets.org/trac/libwebsockets
+libwebsockets.org/libwebsockets-api-doc.html
+git.libwebsockets.org/cgi-bin/cgit/libwebsockets/tree/test-server/test-server.c
+Integration with libevent:
+http://stackoverflow.com/questions/18278987/getting-libwesockets-to-work-with-libevent
+https://github.com/capitalk/libwebsockets
+https://github.com/capitalk/libwebsockets/blob/master/test-server/lws_libevent_test_server.c
+
+= Redis
+
+* redis "keyspace notifications"
+(http://redis.io/topics/notifications)
+
+=== Network Probes ===
+
+* Flow-tools (old and ugly)
+http://code.google.com/p/flow-tools/
+

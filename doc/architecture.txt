@@ -1,0 +1,387 @@
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~ glouglou v3 architecture ~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+TODO
+~~~~
+
+modular
+* start probes and viz client with a mode (link to module ID)
+* handle modularity in processing server
+* multiple rendering modes = not only graphstream for viz
+
+If modularisation is too hard, do v3 on network viz only
+* modular = nice design
+
+see also "XXX IN PROGRESS"
+
+
+===============================================================================
+PRESENTATION
+===============================================================================
+
+Program for reporting and visualising real-time computer events.
+For example:
+* network traffic
+* process activity
+
+Fast UDP protocol for reporting
+Standard TCP protocols for visualisation (graphstream)
+
+
+===============================================================================
+OVERVIEW
+===============================================================================
+
+===============
+==== Probe ====
+= sends packets / connections about nodes that are around
+= sends informations about nodes that are around distance, path ...
+= forwards informations about other probes
+===============
+
+ ^
+ |
+ | UDP glouglou
+ |
+ v
+
+===========================
+==== Processing server ====
+=  probes server
+=  ^
+=  | redis write
+=  v
+=  redis
+=  ^
+=  | redis "keyspace notifications" (http://redis.io/topics/notifications)
+=  v
+=  viz clients server
+============================
+
+ ^
+ |
+ | TCP Graphstream (gs, http://graphstream-project.org/)
+ |
+ v
+
+====================
+==== Viz client ====
+= web version: gs netstream, gs w3sink
+= C version: egraph with graphstream support
+====================
+
+
+===============================================================================
+PROBE
+===============================================================================
+
+root process
+* fork "probe" process
+* fork "relay" process
+
+probe process
+* open network interface (pcap.c)
+* droppriv + chroot
+* connect to processing server / relaying probe
+* event loop
+  * capture traffic and send summary using glouglou protocol
+
+relay process
+* droppriv + chroot
+* event loop
+  * accept connection (glouglou)
+    * client auth (static password, encryption in the future)
+  * perclient: receive probe traffic
+    * send to processing server / relaying probe
+
+
+===============================================================================
+PROCESSING SERVER
+===============================================================================
+
+root process
+* fork/connect redis
+* fork "probes server"
+* fork "viz clients server"
+* wait childs
+
+probes server
+* listen UDP
+* droppriv + chroot
+* event loop
+  * accept connection (glouglou)
+    * client auth (static password, encryption in the future)
+  * perclient: receive probes traffic
+    * write to redis
+
+viz clients server
+* listen TCP
+* droppriv + chroot
+* event loop
+  * accept connection
+    * client auth (static password, TLS with EDH)
+  * perclient: build network graph
+    * read redis data
+    * create internal graph
+  * perclient: receive client configuration
+  * perclient: send full graph
+  * perclient loop: receive redis notifications and update internal graph
+  * perclient loop: send graph updates
+  * perclient loop: send graph updates
+  * perclient loop: receive client configuration updates
+
+
+===============================================================================
+VIZ CLIENT
+===============================================================================
+
+* connect to processing server
+* send configuration
+* receive full graph
+* event loop
+  * receive graph updates
+  * send configuration updates
+  * render graph
+
+
+===============================================================================
+GLOUGLOU NEW MODULAR ARCHITECTURE (XXX IN PROGRESS)
+===============================================================================
+
+Probe [code]
+* capture events
+* send events
+* glouglou protocol module ID
+Network capture probe plugins
+* callback for pcap fd event
+* additional glouglou protocol module ID
+
+^
+| report with glouglou protocol
+v
+
+Processing server [code]
+*
+* glouglou protocol module ID
+* redis db representation
+* to viz client: depends on module ID and client configuration
+  * per client internal representation
+  * communication protocol to client
+
+^
+| publish with dedicated viz/data protocol [spec]
+v
+
+Viz client - visualise events [spec]
+* different layouts, depends on module ID and client configuration
+  * communication protocol from processing server
+  * rendering method
+
+Module structure
+================
+
+= NEW NEW
+
+== gg_net_probe.[c,sh,py]
+* main()
+probe_callbacks->cb_event = cb_event;
+gg = gg_probe_connect(server_ip, server_port, probe_callbacks)
+gg_probe_send(gg, packet
+* cb_event(struct gg)
+gg_probe_send()
+
+== gg_net_probe_mod_ss7.[c,sh,py]
+* struct gg_net_probe_mod_conf
+* cb_pcap(int fd)
+  /* test ss7 layer */
+  /* send MODULE_NETWORK_SS7 glouglou packets */
+
+== glougloud.c
+* main()
+  fork
+
+== glougloud_mod_net.[c,sh,py]
+* cb_probes(struct gg_event)
+    module ID
+    redis_write()
+    pipe_write()
+* cb_redis(struct redis_notification)
+    gs-netstream_send() / json_send() /* depends on client conf and Viz client protocol */
+* cb_vizcli_config_change(struct myconfig)
+    update_client_conf()
+
+== gg_viz_client.[c,sh,py]
+* module ID
+
+= NEW
+
+netviz_probe.[c,sh,py]
+* cb_ggmod_init(struct gg)
+  setup libevent callbacks
+* cb_ggmod_event(struct gg)
+    gg_send()
+
+netviz_processing.[c,sh,py]
+* cb_ggmod_probes_event(struct gg_event)
+    redis_write()
+* cb_vizcli_redis(struct redis_notification)
+    /* depends on client conf and Viz client protocol */
+    gs-netstream_send() / json_send()
+* cb_vizcli_config_change(struct myconfig)
+    update_client_conf()
+
+netviz.ggspec
+* Probes <-> Processing server
+  * glouglou module ID
+
+Viz clients are modulare separately
+* base viz client graph (protocol=GraphStream)
+* base viz client text (protocol=JSON)
+* per module configuration, push via HTTP JSON POST
+
+= OLD
+
+* Publish
+  * protocol choice (graphstream, json data [plugin])
+  * redis record path -> publish update
+  * filter redis records with client configuration spec
+* Viz client
+  * rendering method choice (graph, data text)
+
+ggprobe.c / ggprobe.sh / ggprobe.py
+  event_cb()
+    gg_send()
+proto_report.ggspec
+processing.ggspec
+  event
+proto_publish.ggspec
+viz.ggspec
+
+Example: Network Viz
+====================
+
+netviz_probe.c
+  capture = pcap code
+
+netviz_processing.c
+
+netviz.ggspec
+  glouglou module ID = 0x01
+
+Viz client
+* web graph
+* egraph
+* Qt client
+
+
+===============================================================================
+GLOUGLOU PROTOCOL
+===============================================================================
+
+* version
+  PACKET_VERSION = 0x03
+* module ID
+  MODULE_NETWORK = 0x00,
+  MODULE_PROCESS = 0x01,
+* message type
+  MODULE_NETWORK:
+    PACKET_NEWCONN = 0x01,
+    PACKET_DELCONN = 0x02,
+    PACKET_DATA    = 0x03,
+    PACKET_NAME    = 0x04,
+    PACKET_TRACE   = 0x05,
+  MODULE_PROCESS:
+    PACKET_FORK = 0x01,
+    PACKET_EXEC = 0x02,
+    PACKET_EXIT = 0x03,
+
+MODULE_NETWORK:
+
+PACKET_NEWCONN
+	u_int32_t       src;
+	u_int8_t        src_port;
+	u_int32_t       dst;
+	u_int8_t        dst_port;
+PACKET_DELCONN
+	u_int32_t       src;
+	u_int8_t        src_port;
+	u_int32_t       dst;
+	u_int8_t        dst_port;
+PACKET_DATA
+	u_int32_t       src;
+	u_int8_t        src_port;
+	u_int32_t       dst;
+	u_int8_t        dst_port;
+	u_int8_t        size;
+PACKET_NAME
+PACKET_TRACE
+
+===============================================================================
+GLOUGLOU DATABASE
+===============================================================================
+
+2 types of records
+* history, timestamp prefixed epoch + s/10
+* current state, "/" prefixed
+
+Each record is a set storing the probes IDs using SADD and SREM (get with SMEMBERS).
+This way if a probe sends 2 times a record, no new event is generated for viz clients.
+If multiple probes send the same record, multiple events and generated for viz clients.
+
+Records must not be renamed because it's not atomic (KEYS, wait, RENAME).
+
+MODULE_NETWORK:
+
+13793315910/c/10.0.0.1-1234-10.0.0.2-80
+13793315910/c/192.168.1.3-5678-192.168.1.254-80
+13793315910/n/10.0.0.1
+13793315910/n/10.0.0.2
+13793315910/n/192.168.1.3
+13793315910/n/192.168.1.254
+13793315920/p/10.0.0.1-10.0.0.2
+13793315920/p/10.0.0.1-192.168.1.3-192.168.1.254
+13793315950/r/10.0.0.1-router
+13793315955/r/192.168.1.254-internet gateway
+13793315961/d/10.0.0.1-1234-10.0.0.2-80/3
+13793315963/d/10.0.0.1-1234-10.0.0.2-80/12
+13793315910/C/10.0.0.1-1234-10.0.0.2-80
+
+/n/192.168.1.3
+/n/192.168.1.254
+/c/192.168.1.3-5678-192.168.1.254-80
+/r/192.168.1.254-internet gateway
+/r/10.0.0.1-router
+/p/10.0.0.1-10.0.0.2
+/p/10.0.0.1-192.168.1.3-192.168.1.254
+
+MODULE_PROCESS:
+
+1379331600/f/10432/bash/10434
+1379331600/c/10434/ps
+1379331600/t/10434
+
+/p/10432/bash
+
+===============================================================================
+GLOUGLOU DATABASE TEST
+===============================================================================
+
+set "13793315910/c/10.0.0.1-1234-10.0.0.2-80" ""
+set "13793315910/c/192.168.1.3-5678-192.168.1.254-80" ""
+set "13793315910/n/10.0.0.1-router" ""
+set "13793315910/n/10.0.0.2-" ""
+set "13793315910/n/192.168.1.3-" ""
+set "13793315910/n/192.168.1.254-internet gateway" ""
+set "13793315920/p/10.0.0.1-10.0.0.2" ""
+set "13793315920/p/10.0.0.1-192.168.1.3-192.168.1.254" ""
+set "13793315950/d/10.0.0.1-1234-10.0.0.2-80/3" ""
+set "13793315952/d/10.0.0.1-1234-10.0.0.2-80/12" ""
+set "13793315910/C/10.0.0.1-1234-10.0.0.2-80" ""
+set "13793315910/N/10.0.0.1" ""
+set "13793315910/N/10.0.0.2" ""
+
+set "/n/192.168.1.3-" ""
+set "/n/192.168.1.254-internet gateway" ""
+set "/c/192.168.1.3-5678-192.168.1.254-80" ""

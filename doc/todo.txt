@@ -1,0 +1,20 @@
+* research "redis for graph"
+
+* compile libglouglou with mod 0
+* compile probe
+* do gg_server part
+*
+
+Malware analysis, graph network traffic:
+https://github.com/tomchop/malcom
+
+Suricata coder, cf
+Eric Leblond
+
+===============================================================================
+OLD
+===============================================================================
+
+20130917
+* fix redis notification parse
+* modules init()

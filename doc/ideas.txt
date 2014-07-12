@@ -1,0 +1,18 @@
+===============================================================================
+2012-12-18_20-36
+
+After Json talk:
+
+Probe
+* sends packets / connections about nodes that are around
+* sends informations about nodes that are around distance, path ...
+* forwards informations about other probes
+
+Processing server
+* a graph out of network informations, which nodes are connected to which
+* has the state of all the network
+
+Visualisation client (small, no processing)
+* transfers full graph on connection
+* then graph updates, about nodes
+* push / pull ?
